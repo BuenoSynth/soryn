@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'; // importado o useEffect
+import React, { useState, useEffect } from 'react';
 import Layout from './components/Layout';
 import Sidebar from './components/Sidebar';
 import DebatePanel from './components/DebatePanel';
@@ -7,24 +7,19 @@ import ThemePanel from './components/ThemePanel';
 import './App.css';
 
 function App() {
-  const [activeTab, setActiveTab] = useState('debate'); // Aba que abre quando entra no site
+  const [activeTab, setActiveTab] = useState('debate');
   const [selectedModels, setSelectedModels] = useState([]);
-  
-  // <-- Estado para guardar a lista de TODOS os modelos do backend
   const [allModels, setAllModels] = useState([]);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  // <-- Função que busca os modelos da nossa API em Python
   const fetchAllModels = async () => {
     try {
       const response = await fetch('http://localhost:5000/api/models');
-      if (!response.ok) {
-        throw new Error('Falha ao buscar modelos do backend.');
-      }
+      if (!response.ok) throw new Error('Falha na rede ao buscar modelos');
       const data = await response.json();
-      setAllModels(data); // Armazena a lista no nosso estado
+      setAllModels(data);
     } catch (error) {
-      console.error("Erro fatal ao buscar modelos:", error);
-      // O ideal aqui seria mostrar uma mensagem de erro na tela
+      console.error("Erro ao buscar a lista de modelos:", error);
     }
   };
 
@@ -32,6 +27,43 @@ function App() {
   useEffect(() => {
     fetchAllModels();
   }, []); // O array vazio [] garante que isso só roda uma vez
+
+
+  const handleModelDelete = async (modelIdToDelete) => {
+    if (!window.confirm(`Tem certeza que deseja remover o modelo ${modelIdToDelete}?`)) {
+      return;
+    }
+
+    // Guarda o estado atual caso a operação falhe e precisemos reverter
+    const originalModels = [...allModels];
+    const originalSelectedModels = [...selectedModels];
+
+    // --- ATUALIZAÇÃO OTIMISTA ---
+    // Remove o modelo da lista local IMEDIATAMENTE
+    setAllModels(prev => prev.filter(model => model.id !== modelIdToDelete));
+    setSelectedModels(prev => prev.filter(model => model.id !== modelIdToDelete));
+
+    // --- SINCRONIZAÇÃO EM SEGUNDO PLANO ---
+    try {
+      const response = await fetch(`http://localhost:5000/api/models/remote/${modelIdToDelete}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        // Se a chamada falhar, joga um erro para ser pego pelo catch
+        throw new Error('Falha ao remover o modelo no backend.');
+      }
+      // Se deu certo, não fazemos nada, pois a UI já foi atualizada.
+      console.log(`Modelo ${modelIdToDelete} removido com sucesso no backend.`);
+
+    } catch (error) {
+      console.error("Erro ao remover modelo, revertendo a UI:", error);
+      // Se a sincronização falhar, revertemos a UI para o estado original
+      setAllModels(originalModels);
+      setSelectedModels(originalSelectedModels);
+      // Aqui poderíamos mostrar uma notificação de erro para o usuário
+      alert("Não foi possível remover o modelo. Tente novamente.");
+    }
+  };
 
   const handleModelToggle = (model) => {
     setSelectedModels(prev => {
@@ -47,22 +79,20 @@ function App() {
   const renderContent = () => {
     switch (activeTab) {
       case 'debate':
-        return (
-          <DebatePanel 
-            selectedModels={selectedModels}
-            onDebateStart={(result) => console.log('Debate result:', result)}
-          />
-        );
+        return <DebatePanel selectedModels={selectedModels} />;
       case 'models':
         return (
-          <ModelsPanel 
-            // <-- Passando a lista completa de modelos para o painel
+          <ModelsPanel
             allModels={allModels}
             selectedModels={selectedModels}
             onModelToggle={handleModelToggle}
+            onAddModelClick={() => setIsAddModalOpen(true)} // Função para abrir o Dialog
+            isAddModalOpen={isAddModalOpen}
+            setIsAddModalOpen={setIsAddModalOpen}
+            onModelAdded={fetchAllModels}     // Função para ser chamada após adicionar um modelo
+            onModelDelete={handleModelDelete} // Função para ser chamada após deletar um modelo
           />
         );
-      // ... o resto do seu switch case continua igual
       case 'themes':
         return <ThemePanel />;
       case 'history':

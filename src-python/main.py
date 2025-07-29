@@ -15,7 +15,7 @@ CORS(app)
 models_manager = ModelsManager()
 debate_engine = DebateEngine(models_manager=models_manager)
 
-# --- Novas Rotas de Gerenciamento ---
+# --- Rotas de Gerenciamento ---
 
 @app.route('/api/models', methods=['GET'])
 async def get_all_models():
@@ -31,24 +31,43 @@ async def get_all_models():
 def add_remote_api_model():
     """Endpoint para o usuário adicionar uma nova chave de API pela interface."""
     data = request.get_json()
-    required_fields = ['provider', 'api_key', 'model_id', 'model_name']
+    required_fields = ['provider', 'api_key', 'model_id', 'model_name', 'api_model_name']
     if not all(field in data for field in required_fields):
         return jsonify({"erro": "Campos necessários ausentes"}), 400
 
     try:
-        models_manager.add_remote_model(
+        # A função agora retorna uma tupla (sucesso, mensagem)
+        success, message = models_manager.add_remote_model(
             provider=data['provider'],
             api_key=data['api_key'],
             model_id=data['model_id'],
-            model_name=data['model_name']
+            model_name=data['model_name'],
+            api_model_name=data['api_model_name']
         )
-        return jsonify({"sucesso": "Modelo de API adicionado."}), 201
+
+        if success:
+            return jsonify({"sucesso": message}), 201
+        else:
+            # Retorna a mensagem de erro específica com o código 409 Conflict
+            return jsonify({"erro": message}), 409
     except Exception as e:
         logger.error(f"Erro ao adicionar modelo remoto: {e}")
         return jsonify({"erro": "Falha ao salvar modelo de API"}), 500
 
-# --- Rota de Debate (sem alterações) ---
+@app.route('/api/models/remote/<string:model_id>', methods=['DELETE'])
+def delete_remote_api_model(model_id):
+    """Endpoint para o usuário remover uma chave de API pela interface."""
+    try:
+        success = models_manager.delete_remote_model(model_id)
+        if success:
+            return jsonify({"sucesso": f"Modelo {model_id} removido."}), 200
+        else:
+            return jsonify({"erro": f"Modelo {model_id} não encontrado."}), 404
+    except Exception as e:
+        logger.error(f"Erro ao remover modelo remoto: {e}")
+        return jsonify({"erro": "Falha ao remover modelo de API"}), 500
 
+# --- Rota de Debate ---
 @app.route('/debate', methods=['POST'])
 def debate():
     try:

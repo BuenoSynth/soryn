@@ -1,9 +1,7 @@
-# src-python/models_manager.py (VERSÃO FINAL COM API DO OLLAMA)
-
 import json
 import os
 import asyncio
-import aiohttp  # Usaremos aiohttp para fazer a chamada de API assíncrona
+import aiohttp
 import logging
 from dataclasses import dataclass, asdict
 from typing import Dict, List, Optional, Literal
@@ -87,16 +85,49 @@ class ModelsManager:
             logger.error(f"Erro inesperado ao detectar modelos do Ollama via API: {e}")
             return []
 
-    def add_remote_model(self, provider: str, api_key: str, model_id: str, model_name: str):
-        if any(model.id == model_id for model in self.remote_models):
-            logger.warning(f"Modelo remoto com id {model_id} já existe.")
-            return
+    def add_remote_model(self, provider: str, api_key: str, model_id: str, model_name: str, api_model_name: str) -> tuple[bool, str]:
+        """
+        Adiciona uma nova config de API.
+        Retorna uma tupla (sucesso: bool, mensagem: str).
+        """
+
+        # Verificação 1: Nome de Exibição duplicado
+        if any(model.name.lower() == f"{model_name} (API)".lower() for model in self.remote_models):
+            msg = f"O nome de exibição '{model_name}' já está em uso, escolha outro ou edite o atual."
+            logger.warning(msg)
+            return False, msg
+
+        # Verificação 2: ID do Modelo duplicado
+        if any(model.id.lower() == model_id.lower() for model in self.remote_models):
+            msg = f"Modelo com ID '{model_id}' já existe."
+            logger.warning(msg)
+            return False, msg
         
         new_model = ModelConfig(
-            id=model_id, name=f"{model_name} (API)", provider=provider, api_key=api_key
+            id=model_id,
+            name=f"{model_name} (API)",
+            provider=provider,
+            api_key=api_key,
+            api_model_name=api_model_name
         )
         self.remote_models.append(new_model)
         self._save_user_config()
+        msg = f"Modelo remoto {model_id} adicionado."
+        logger.info(msg)
+        return True, msg
+
+    def delete_remote_model(self, model_id: str) -> bool:
+        """Encontra e remove um modelo remoto da lista pelo seu ID."""
+        initial_count = len(self.remote_models)
+        self.remote_models = [model for model in self.remote_models if model.id != model_id]
+        
+        if len(self.remote_models) < initial_count:
+            self._save_user_config()
+            logger.info(f"Modelo remoto {model_id} removido.")
+            return True
+        else:
+            logger.warning(f"Tentativa de remover modelo não encontrado: {model_id}")
+            return False
 
     async def get_unified_models_list(self) -> List[ModelConfig]:
         local_models = await self.discover_ollama_models()

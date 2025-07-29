@@ -13,7 +13,6 @@ import {
   MessageSquare,
   Sparkles
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
   const DebatePanel = ({ selectedModels = [], onDebateStart }) => {
     const [prompt, setPrompt] = useState('');

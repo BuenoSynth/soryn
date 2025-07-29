@@ -3,12 +3,20 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Separator } from '@/components/ui/separator';
-import { Plus, Bot } from 'lucide-react';
+import { Plus, Bot, Trash2, Pencil } from 'lucide-react';
+import AddRemoteModelDialog from './AddRemoteModelDialog';
 
-// O componente agora recebe 'allModels' via props e não tem mais dados 'chumbados'
-const ModelsPanel = ({ allModels = [], selectedModels = [], onModelToggle }) => {
-
+const ModelsPanel = ({
+  allModels = [],
+  selectedModels = [],
+  onModelToggle,
+  onAddModelClick,
+  isAddModalOpen,
+  setIsAddModalOpen,
+  onModelAdded,
+  onModelDelete
+}) => {
+  
   const isModelSelected = (modelId) => {
     return selectedModels.some(model => model.id === modelId);
   };
@@ -19,10 +27,10 @@ const ModelsPanel = ({ allModels = [], selectedModels = [], onModelToggle }) => 
         <div>
           <h2 className="text-2xl font-bold">Modelos de IA</h2>
           <p className="text-muted-foreground">
-            Selecione os modelos que participarão dos debates
+            Gerencie e selecione os modelos que participarão dos debates
           </p>
         </div>
-        <Button className="gap-2">
+        <Button className="gap-2" onClick={onAddModelClick}>
           <Plus className="w-4 h-4" />
           Adicionar Modelo
         </Button>
@@ -40,23 +48,28 @@ const ModelsPanel = ({ allModels = [], selectedModels = [], onModelToggle }) => 
                 model={model}
                 isSelected={isModelSelected(model.id)}
                 onToggle={() => onModelToggle(model)}
+                onDelete={() => onModelDelete(model.id)} // Passa a função de delete para o card
               />
             ))
           ) : (
             <div className="text-center py-8 text-muted-foreground">
               <Bot className="mx-auto h-8 w-8 mb-2" />
-              Nenhum modelo encontrado. Verifique se o Ollama está rodando.
+              Nenhum modelo encontrado. Verifique se o Ollama está rodando ou adicione um modelo de API.
             </div>
           )}
         </CardContent>
       </Card>
+      
+      <AddRemoteModelDialog
+        isOpen={isAddModalOpen}
+        setIsOpen={setIsAddModalOpen}
+        onModelAdded={onModelAdded}
+      />
     </div>
   );
 };
 
-const ModelCard = ({ model, isSelected, onToggle }) => {
-  const canBeToggled = model.is_available;
-
+const ModelCard = ({ model, isSelected, onToggle, onDelete }) => {
   return (
     <div className="p-4 border rounded-lg transition-colors hover:bg-muted/50">
       <div className="flex items-center justify-between">
@@ -65,15 +78,22 @@ const ModelCard = ({ model, isSelected, onToggle }) => {
           <p className="text-sm text-muted-foreground">{model.description}</p>
           <Badge variant="outline">{model.provider}</Badge>
         </div>
-        <div className="flex flex-col items-center space-y-2">
-          <Switch
-            checked={isSelected}
-            onCheckedChange={onToggle}
-            disabled={!canBeToggled}
-          />
-          {!canBeToggled && (
-            <span className="text-xs text-red-500">Indisponível</span>
-          )}
+        <div className="flex items-center space-x-4">
+            {model.provider !== 'ollama' && (
+                <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => alert('Função de editar a ser implementada!')}>
+                        <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onDelete}>
+                        <Trash2 className="h-4 w-4 text-red-500 hover:text-red-600" />
+                    </Button>
+                </div>
+            )}
+            <Switch
+                checked={isSelected}
+                onCheckedChange={onToggle}
+                disabled={!model.is_available}
+            />
         </div>
       </div>
     </div>
