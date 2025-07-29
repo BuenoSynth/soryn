@@ -1,0 +1,104 @@
+# src-python/models_manager.py (VERSÃO FINAL COM API DO OLLAMA)
+
+import json
+import os
+import asyncio
+import aiohttp  # Usaremos aiohttp para fazer a chamada de API assíncrona
+import logging
+from dataclasses import dataclass, asdict
+from typing import Dict, List, Optional, Literal
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+ModelProvider = Literal["ollama", "openai", "gemini"]
+
+@dataclass
+class ModelConfig:
+    id: str
+    name: str
+    provider: ModelProvider
+    description: Optional[str] = ""
+    api_key: Optional[str] = None
+    api_model_name: Optional[str] = None
+    is_available: bool = True
+
+class ModelsManager:
+    def __init__(self, config_path: str = "src-python/user_config.json"):
+        self.config_path = config_path
+        self.remote_models: List[ModelConfig] = self._load_user_config()
+
+    def _load_user_config(self) -> List[ModelConfig]:
+        if not os.path.exists(self.config_path):
+            # Cria um arquivo vazio se ele não existir
+            with open(self.config_path, 'w', encoding='utf-8') as f:
+                json.dump({"remote_models": []}, f)
+            return []
+        try:
+            with open(self.config_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            models = [ModelConfig(**model_data) for model_data in data.get("remote_models", [])]
+            logger.info(f"Carregados {len(models)} modelos remotos da config do usuário.")
+            return models
+        except Exception as e:
+            logger.error(f"Erro ao carregar user_config.json: {e}")
+            return []
+
+    def _save_user_config(self):
+        try:
+            with open(self.config_path, 'w', encoding='utf-8') as f:
+                data_to_save = {"remote_models": [asdict(model) for model in self.remote_models]}
+                json.dump(data_to_save, f, indent=2, ensure_ascii=False)
+            logger.info("Configurações do usuário salvas.")
+        except Exception as e:
+            logger.error(f"Erro ao salvar user_config.json: {e}")
+
+    async def discover_ollama_models(self) -> List[ModelConfig]:
+        """Detecta modelos instalados no Ollama via API REST."""
+        logger.info("Tentando detectar modelos do Ollama via API...")
+        url = "http://localhost:11434/api/tags"
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, timeout=5) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        ollama_models = []
+                        for model_data in data.get("models", []):
+                            # A API usa 'name' para o ID completo (ex: llama2:7b)
+                            model_id = model_data['name']
+                            # Pega o nome base para exibição (ex: llama2)
+                            display_name = model_id.split(':')[0]
+                            ollama_models.append(ModelConfig(
+                                id=model_id,
+                                name=f"{display_name.capitalize()} (Local)",
+                                provider="ollama",
+                                description=f"Modelo de {model_data['size'] // (1024**3)} GB"
+                            ))
+                        logger.info(f"Detectados {len(ollama_models)} modelos do Ollama.")
+                        return ollama_models
+                    else:
+                        logger.warning(f"API do Ollama retornou status {response.status}.")
+                        return []
+        except aiohttp.ClientConnectorError:
+            logger.warning("Não foi possível conectar à API do Ollama. O serviço está rodando?")
+            return []
+        except Exception as e:
+            logger.error(f"Erro inesperado ao detectar modelos do Ollama via API: {e}")
+            return []
+
+    def add_remote_model(self, provider: str, api_key: str, model_id: str, model_name: str):
+        if any(model.id == model_id for model in self.remote_models):
+            logger.warning(f"Modelo remoto com id {model_id} já existe.")
+            return
+        
+        new_model = ModelConfig(
+            id=model_id, name=f"{model_name} (API)", provider=provider, api_key=api_key
+        )
+        self.remote_models.append(new_model)
+        self._save_user_config()
+
+    async def get_unified_models_list(self) -> List[ModelConfig]:
+        local_models = await self.discover_ollama_models()
+        all_models = local_models + self.remote_models
+        return all_models
