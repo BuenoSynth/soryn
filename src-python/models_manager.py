@@ -85,15 +85,12 @@ class ModelsManager:
             logger.error(f"Erro inesperado ao detectar modelos do Ollama via API: {e}")
             return []
 
-    def add_remote_model(self, provider: str, api_key: str, model_id: str, model_name: str, api_model_name: str) -> tuple[bool, str]:
-        """
-        Adiciona uma nova config de API.
-        Retorna uma tupla (sucesso: bool, mensagem: str).
-        """
+    def add_remote_model(self, provider: str, api_key: str, model_id: str, name: str, api_model_name: str) -> tuple[bool, str]:
+        """Adiciona uma nova config de API usando 'name' para o nome de exibição."""
 
         # Verificação 1: Nome de Exibição duplicado
-        if any(model.name.lower() == f"{model_name} (API)".lower() for model in self.remote_models):
-            msg = f"O nome de exibição '{model_name}' já está em uso, escolha outro ou edite o atual."
+        if any(model.name.lower() == f"{name} (API)".lower() for model in self.remote_models):
+            msg = f"Modelo com nome de exibição '{name}' já existe."
             logger.warning(msg)
             return False, msg
 
@@ -102,10 +99,10 @@ class ModelsManager:
             msg = f"Modelo com ID '{model_id}' já existe."
             logger.warning(msg)
             return False, msg
-        
+
         new_model = ModelConfig(
             id=model_id,
-            name=f"{model_name} (API)",
+            name=f"{name} (API)",
             provider=provider,
             api_key=api_key,
             api_model_name=api_model_name
@@ -117,17 +114,47 @@ class ModelsManager:
         return True, msg
 
     def delete_remote_model(self, model_id: str) -> bool:
-        """Encontra e remove um modelo remoto da lista pelo seu ID."""
-        initial_count = len(self.remote_models)
-        self.remote_models = [model for model in self.remote_models if model.id != model_id]
-        
-        if len(self.remote_models) < initial_count:
-            self._save_user_config()
-            logger.info(f"Modelo remoto {model_id} removido.")
-            return True
-        else:
-            logger.warning(f"Tentativa de remover modelo não encontrado: {model_id}")
+            """Encontra e remove um modelo remoto da lista pelo seu ID."""
+            initial_count = len(self.remote_models)
+            self.remote_models = [model for model in self.remote_models if model.id != model_id]
+            
+            if len(self.remote_models) < initial_count:
+                self._save_user_config()
+                logger.info(f"Modelo remoto {model_id} removido.")
+                return True
+            else:
+                logger.warning(f"Tentativa de remover modelo não encontrado: {model_id}")
             return False
+            
+    def update_remote_model(self, model_id_to_update: str, new_data: dict) -> tuple[bool, str]:
+        """
+        Encontra um modelo pelo seu ID original e atualiza seus dados.
+        Retorna uma tupla (sucesso: bool, mensagem: str).
+        """
+        model_to_update = next((model for model in self.remote_models if model.id == model_id_to_update), None)
+
+        if not model_to_update:
+            msg = f"Modelo com ID '{model_id_to_update}' não encontrado para atualização."
+            logger.warning(msg)
+            return False, msg
+
+        # Verifica se o novo nome de exibição já está em uso por OUTRO modelo
+        new_name = f"{new_data['name']} (API)"
+        if any(model.name.lower() == new_name.lower() and model.id != model_id_to_update for model in self.remote_models):
+            msg = f"O nome de exibição '{new_data['name']}' já está em uso por outro modelo."
+            logger.warning(msg)
+            return False, msg
+
+        # Atualiza os campos do modelo encontrado
+        model_to_update.name = new_name
+        model_to_update.provider = new_data['provider']
+        model_to_update.api_key = new_data['api_key']
+        model_to_update.api_model_name = new_data['api_model_name']
+
+        self._save_user_config()
+        msg = f"Modelo {model_id_to_update} atualizado com sucesso."
+        logger.info(msg)
+        return True, msg
 
     async def get_unified_models_list(self) -> List[ModelConfig]:
         local_models = await self.discover_ollama_models()

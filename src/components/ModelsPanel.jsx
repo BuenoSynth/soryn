@@ -14,7 +14,9 @@ const ModelsPanel = ({
   isAddModalOpen,
   setIsAddModalOpen,
   onModelAdded,
-  onModelDelete
+  onModelDelete,
+  onModelEdit,
+  editingModel
 }) => {
   
   const isModelSelected = (modelId) => {
@@ -48,7 +50,8 @@ const ModelsPanel = ({
                 model={model}
                 isSelected={isModelSelected(model.id)}
                 onToggle={() => onModelToggle(model)}
-                onDelete={() => onModelDelete(model.id)} // Passa a função de delete para o card
+                onDelete={() => onModelDelete(model.id)}
+                onEdit={() => onModelEdit(model)}
               />
             ))
           ) : (
@@ -64,12 +67,13 @@ const ModelsPanel = ({
         isOpen={isAddModalOpen}
         setIsOpen={setIsAddModalOpen}
         onModelAdded={onModelAdded}
+        editingModel={editingModel}
       />
     </div>
   );
 };
 
-const ModelCard = ({ model, isSelected, onToggle, onDelete }) => {
+const ModelCard = ({ model, isSelected, onToggle, onDelete, onEdit }) => {
   return (
     <div className="p-4 border rounded-lg transition-colors hover:bg-muted/50">
       <div className="flex items-center justify-between">
@@ -81,7 +85,7 @@ const ModelCard = ({ model, isSelected, onToggle, onDelete }) => {
         <div className="flex items-center space-x-4">
             {model.provider !== 'ollama' && (
                 <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => alert('Função de editar a ser implementada!')}>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit}>
                         <Pencil className="h-4 w-4" />
                     </Button>
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onDelete}>

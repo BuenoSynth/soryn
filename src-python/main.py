@@ -29,26 +29,23 @@ async def get_all_models():
 
 @app.route('/api/models/remote', methods=['POST'])
 def add_remote_api_model():
-    """Endpoint para o usuário adicionar uma nova chave de API pela interface."""
     data = request.get_json()
-    required_fields = ['provider', 'api_key', 'model_id', 'model_name', 'api_model_name']
+    required_fields = ['provider', 'api_key', 'model_id', 'name', 'api_model_name']
     if not all(field in data for field in required_fields):
         return jsonify({"erro": "Campos necessários ausentes"}), 400
 
     try:
-        # A função agora retorna uma tupla (sucesso, mensagem)
         success, message = models_manager.add_remote_model(
             provider=data['provider'],
             api_key=data['api_key'],
             model_id=data['model_id'],
-            model_name=data['model_name'],
+            name=data['name'],
             api_model_name=data['api_model_name']
         )
 
         if success:
             return jsonify({"sucesso": message}), 201
         else:
-            # Retorna a mensagem de erro específica com o código 409 Conflict
             return jsonify({"erro": message}), 409
     except Exception as e:
         logger.error(f"Erro ao adicionar modelo remoto: {e}")
@@ -66,6 +63,25 @@ def delete_remote_api_model(model_id):
     except Exception as e:
         logger.error(f"Erro ao remover modelo remoto: {e}")
         return jsonify({"erro": "Falha ao remover modelo de API"}), 500
+
+@app.route('/api/models/remote/<string:model_id>', methods=['PUT'])
+def update_remote_api_model(model_id):
+    """Endpoint para o usuário editar um modelo de API existente."""
+    data = request.get_json()
+    required_fields = ['provider', 'api_key', 'name', 'api_model_name']
+    if not all(field in data for field in required_fields):
+        return jsonify({"erro": "Campos necessários ausentes"}), 400
+
+    try:
+        success, message = models_manager.update_remote_model(model_id, data)
+        if success:
+            return jsonify({"sucesso": message}), 200
+        else:
+            # Retorna 404 se não encontrou, 409 se houve conflito de nome
+            return jsonify({"erro": message}), 409 if "já está em uso" in message else 404
+    except Exception as e:
+        logger.error(f"Erro ao atualizar modelo remoto: {e}")
+        return jsonify({"erro": "Falha ao atualizar modelo de API"}), 500
 
 # --- Rota de Debate ---
 @app.route('/debate', methods=['POST'])

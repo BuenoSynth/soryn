@@ -11,6 +11,7 @@ function App() {
   const [selectedModels, setSelectedModels] = useState([]);
   const [allModels, setAllModels] = useState([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingModel, setEditingModel] = useState(null);
 
   const fetchAllModels = async () => {
     try {
@@ -23,11 +24,9 @@ function App() {
     }
   };
 
-  // <-- useEffect para chamar a função de busca uma vez quando o app abrir
   useEffect(() => {
     fetchAllModels();
-  }, []); // O array vazio [] garante que isso só roda uma vez
-
+  }, []);
 
   const handleModelDelete = async (modelIdToDelete) => {
     if (!window.confirm(`Tem certeza que deseja remover o modelo ${modelIdToDelete}?`)) {
@@ -76,6 +75,22 @@ function App() {
     });
   };
 
+  // Funções para controlar o Dialog de Adicionar/Editar/Fechar
+  const handleOpenAddModel = () => {
+    setEditingModel(null); // Garante que não estamos em modo de edição
+    setIsAddModalOpen(true);
+  };
+
+  const handleOpenEditModal = (model) => {
+    setEditingModel(model); // Guarda os dados do modelo para edição
+    setIsAddModalOpen(true); // Abre o mesmo Dialog
+  };
+
+  const handleCloseModal = () => {
+    setIsAddModalOpen(false);
+    setEditingModel(null); // Limpa o estado de edição ao fechar
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case 'debate':
@@ -86,11 +101,14 @@ function App() {
             allModels={allModels}
             selectedModels={selectedModels}
             onModelToggle={handleModelToggle}
-            onAddModelClick={() => setIsAddModalOpen(true)} // Função para abrir o Dialog
+            onAddModelClick={handleOpenAddModel}
+            onModelEdit={handleOpenEditModal}  
+            onModelDelete={handleModelDelete}
+            // Passa o controle e os dados para o Dialog
             isAddModalOpen={isAddModalOpen}
-            setIsAddModalOpen={setIsAddModalOpen}
-            onModelAdded={fetchAllModels}     // Função para ser chamada após adicionar um modelo
-            onModelDelete={handleModelDelete} // Função para ser chamada após deletar um modelo
+            setIsAddModalOpen={handleCloseModal}
+            editingModel={editingModel}
+            onModelAdded={fetchAllModels}
           />
         );
       case 'themes':
