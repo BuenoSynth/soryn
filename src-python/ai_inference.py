@@ -40,13 +40,9 @@ class InferenceResponse:
 
 class AIInference:
     def __init__(self):
-        # Configura os clientes async das bibliotecas
-        self.openai_client = openai.AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        # A chave do Google também pode vir de um .env
-        # genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+        self.session: Optional[aiohttp.ClientSession] = None
 
     async def __aenter__(self):
-        # Usaremos aiohttp apenas para o Ollama
         self.session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=300))
         return self
 
@@ -70,7 +66,6 @@ class AIInference:
             response.inference_time_ms = int((end_time - start_time) * 1000)
             return response
         except Exception as e:
-            # ... (bloco de erro continua igual)
             end_time = asyncio.get_event_loop().time()
             logger.error(f"Erro na inferência do modelo {request.model_id}: {e}")
             return InferenceResponse(
@@ -80,7 +75,6 @@ class AIInference:
             )
 
     async def _infer_ollama_api(self, request: InferenceRequest, model_config: ModelConfig) -> InferenceResponse:
-        # ... (esta função continua igual à anterior)
         model_name = model_config.id
         logger.info(f"Iniciando inferência via API do Ollama para o modelo: {model_name}")
         url = "http://localhost:11434/api/generate"
@@ -102,13 +96,15 @@ class AIInference:
         """Executa inferência usando a biblioteca oficial da OpenAI."""
         logger.info(f"Iniciando inferência com SDK da OpenAI para o modelo: {model_config.id}")
         
-        # Usa a chave da configuração do usuário ou a chave do .env
-        client = openai.AsyncOpenAI(api_key=model_config.api_key or self.openai_client.api_key)
+        api_key = model_config.api_key or os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            raise ValueError(f"Chave de API da OpenAI não encontrada para o modelo '{model_config.id}'")
+        
+        client = openai.AsyncOpenAI(api_key=api_key)
 
         completion = await client.chat.completions.create(
             model=model_config.api_model_name or model_config.id,
-            messages=[{"role": "user", "content": request.prompt}],
-            stream=False
+            messages=[{"role": "user", "content": request.prompt}]
         )
         return InferenceResponse(
             model_id=request.model_id,
@@ -121,13 +117,15 @@ class AIInference:
         """TEMPLATE: Executa inferência usando a biblioteca oficial do Google Gemini."""
         logger.info(f"Iniciando inferência com SDK do Gemini para o modelo: {model_config.id}")
 
-        # Configura a chave específica para esta chamada
-        genai.configure(api_key=model_config.api_key or os.getenv("GOOGLE_API_KEY"))
+        api_key = model_config.api_key or os.getenv("GOOGLE_API_KEY")
+        if not api_key:
+            raise ValueError(f"Chave de API do Gemini não encontrada para o modelo '{model_config.id}'")
+
+        genai.configure(api_key=api_key)
 
         model = genai.GenerativeModel(model_config.api_model_name or model_config.id)
         response = await model.generate_content_async(request.prompt)
 
-        # O objeto de resposta do Gemini é diferente, precisamos extrair os dados
         return InferenceResponse(
             model_id=request.model_id,
             response_text=response.text,
