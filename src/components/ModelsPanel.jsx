@@ -1,10 +1,13 @@
-import React from 'react';
+// src/components/ui/ModelsPanel.jsx (VERSÃO COM BOTÃO DE ATUALIZAR)
+
+import React, { useState } from 'react'; // Adicionado useState
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Bot, Trash2, Pencil } from 'lucide-react';
+import { Plus, Bot, Trash2, Pencil, RefreshCw } from 'lucide-react';
 import AddRemoteModelDialog from './AddRemoteModelDialog';
+import { cn } from '@/lib/utils'; // Importa o cn para animação
 
 const ModelsPanel = ({
   allModels = [],
@@ -13,12 +16,22 @@ const ModelsPanel = ({
   onAddModelClick,
   isAddModalOpen,
   setIsAddModalOpen,
-  onModelAdded,
+  onModelAdded, // Esta é a nossa função fetchAllModels
   onModelDelete,
   onModelEdit,
   editingModel
 }) => {
   
+  // --- NOVO: Estado para controlar o feedback visual do botão de atualizar ---
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // --- NOVO: Função para lidar com o clique no botão de atualizar ---
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await onModelAdded(); // Reutiliza a função que busca todos os modelos
+    setIsRefreshing(false);
+  };
+
   const isModelSelected = (modelId) => {
     return selectedModels.some(model => model.id === modelId);
   };
@@ -32,10 +45,16 @@ const ModelsPanel = ({
             Gerencie e selecione os modelos que participarão dos debates
           </p>
         </div>
-        <Button className="gap-2" onClick={onAddModelClick}>
-          <Plus className="w-4 h-4" />
-          Adicionar Modelo
-        </Button>
+        {/* --- NOVO: Wrapper para agrupar os botões de ação --- */}
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" onClick={handleRefresh} disabled={isRefreshing}>
+            <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+          </Button>
+          <Button className="gap-2" onClick={onAddModelClick}>
+            <Plus className="w-4 h-4" />
+            Adicionar Modelo
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -73,6 +92,7 @@ const ModelsPanel = ({
   );
 };
 
+// O componente ModelCard não precisa de alterações
 const ModelCard = ({ model, isSelected, onToggle, onDelete, onEdit }) => {
   return (
     <div className="p-4 border rounded-lg transition-colors hover:bg-muted/50">
