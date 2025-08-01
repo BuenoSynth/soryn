@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { Toaster } from '@/components/ui/sonner'; // Importa o Toaster
+import { toast } from 'sonner'; // Importa a função de toast
 import Layout from './components/Layout';
 import Sidebar from './components/Sidebar';
 import DebatePanel from './components/DebatePanel';
@@ -21,6 +23,7 @@ function App() {
       setAllModels(data);
     } catch (error) {
       console.error("Erro ao buscar a lista de modelos:", error);
+      toast.error("Erro de Rede", { description: "Não foi possível carregar a lista de modelos." });
     }
   };
 
@@ -32,35 +35,25 @@ function App() {
     if (!window.confirm(`Tem certeza que deseja remover o modelo ${modelIdToDelete}?`)) {
       return;
     }
-
-    // Guarda o estado atual caso a operação falhe e precisemos reverter
     const originalModels = [...allModels];
     const originalSelectedModels = [...selectedModels];
-
-    // --- ATUALIZAÇÃO OTIMISTA ---
-    // Remove o modelo da lista local IMEDIATAMENTE
     setAllModels(prev => prev.filter(model => model.id !== modelIdToDelete));
     setSelectedModels(prev => prev.filter(model => model.id !== modelIdToDelete));
 
-    // --- SINCRONIZAÇÃO EM SEGUNDO PLANO ---
     try {
       const response = await fetch(`http://localhost:5000/api/models/remote/${modelIdToDelete}`, {
         method: 'DELETE',
       });
       if (!response.ok) {
-        // Se a chamada falhar, joga um erro para ser pego pelo catch
         throw new Error('Falha ao remover o modelo no backend.');
       }
-      // Se deu certo, não fazemos nada, pois a UI já foi atualizada.
-      console.log(`Modelo ${modelIdToDelete} removido com sucesso no backend.`);
-
+      toast.success("Modelo Removido", { description: `O modelo ${modelIdToDelete} foi removido com sucesso.` });
     } catch (error) {
       console.error("Erro ao remover modelo, revertendo a UI:", error);
-      // Se a sincronização falhar, revertemos a UI para o estado original
       setAllModels(originalModels);
       setSelectedModels(originalSelectedModels);
-      // Aqui poderíamos mostrar uma notificação de erro para o usuário
-      alert("Não foi possível remover o modelo. Tente novamente.");
+      // Substituindo o 'alert' por um 'toast' de erro
+      toast.error("Falha ao Remover", { description: "Não foi possível remover o modelo. Tente novamente." });
     }
   };
 
@@ -159,6 +152,7 @@ function App() {
           </div>
         </main>
       </div>
+      <Toaster richColors position="top-right" /> {/* Componente do Toaster adicionado */}
     </Layout>
   );
 }

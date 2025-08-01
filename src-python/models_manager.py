@@ -86,17 +86,17 @@ class ModelsManager:
             return []
 
     def add_remote_model(self, provider: str, api_key: str, model_id: str, name: str, api_model_name: str) -> tuple[bool, str]:
-        """Adiciona uma nova config de API usando 'name' para o nome de exibição."""
-
-        # Verificação 1: Nome de Exibição duplicado
-        if any(model.name.lower() == f"{name} (API)".lower() for model in self.remote_models):
-            msg = f"Modelo com nome de exibição '{name}' já existe."
+        """
+        Adiciona uma nova config de API.
+        Retorna uma tupla (sucesso: bool, mensagem: str).
+        """
+        if any(model.id.lower() == model_id.lower() for model in self.remote_models):
+            msg = f"Modelo com ID '{model_id}' já existe."
             logger.warning(msg)
             return False, msg
 
-        # Verificação 2: ID do Modelo duplicado
-        if any(model.id.lower() == model_id.lower() for model in self.remote_models):
-            msg = f"Modelo com ID '{model_id}' já existe."
+        if any(model.name.lower() == f"{name} (API)".lower() for model in self.remote_models):
+            msg = f"Modelo com nome de exibição '{name}' já existe."
             logger.warning(msg)
             return False, msg
 
@@ -109,7 +109,7 @@ class ModelsManager:
         )
         self.remote_models.append(new_model)
         self._save_user_config()
-        msg = f"Modelo remoto {model_id} adicionado."
+        msg = f"Modelo remoto {model_id} adicionado com sucesso."
         logger.info(msg)
         return True, msg
 

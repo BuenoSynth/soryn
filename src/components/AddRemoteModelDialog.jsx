@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -11,7 +12,6 @@ const AddRemoteModelDialog = ({ isOpen, setIsOpen, onModelAdded, editingModel })
   const [name, setName] = useState('');
   const [modelId, setModelId] = useState('');
   const [apiKey, setApiKey] = useState('');
-  const [error, setError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   const isEditing = !!editingModel;
@@ -24,29 +24,23 @@ const AddRemoteModelDialog = ({ isOpen, setIsOpen, onModelAdded, editingModel })
         setModelId(editingModel.id);
         setApiKey(editingModel.api_key);
       } else {
-        setName('');
-        setProvider('openai');
-        setModelId('');
-        setApiKey('');
+        setName(''); setProvider('openai'); setModelId(''); setApiKey('');
       }
-      setError('');
     }
   }, [editingModel, isOpen]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name || !apiKey || (isEditing ? !editingModel.id : !modelId)) {
-      setError('Todos os campos são obrigatórios.');
+    if (!name || !modelId || !apiKey) {
+      toast.error("Erro de Validação", { description: "Todos os campos do formulário são obrigatórios." });
       return;
     }
     setIsSaving(true);
-    setError('');
 
     const url = isEditing
       ? `http://localhost:5000/api/models/remote/${editingModel.id}`
       : 'http://localhost:5000/api/models/remote';
     const method = isEditing ? 'PUT' : 'POST';
-
     const body = {
       provider,
       api_key: apiKey,
@@ -57,14 +51,20 @@ const AddRemoteModelDialog = ({ isOpen, setIsOpen, onModelAdded, editingModel })
 
     try {
       const response = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const responseData = await response.json();
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.erro || 'Ocorreu um erro.');
+        throw new Error(responseData.erro || 'Ocorreu um erro desconhecido.');
       }
+      
+      toast.success(isEditing ? "Modelo Atualizado!" : "Modelo Adicionado!", {
+        description: responseData.sucesso || `O modelo "${name}" foi salvo.`,
+      });
       await onModelAdded();
       setIsOpen(false);
     } catch (err) {
-      setError(err.message);
+      toast.error(isEditing ? "Falha ao Atualizar" : "Falha ao Adicionar", {
+        description: err.message,
+      });
     } finally {
       setIsSaving(false);
     }
@@ -105,7 +105,6 @@ const AddRemoteModelDialog = ({ isOpen, setIsOpen, onModelAdded, editingModel })
               <PasswordInput id="api-key" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="sk-..." />
             </div>
           </div>
-          {error && <p className="text-sm text-red-500 text-center pb-2">{error}</p>}
           <DialogFooter>
             <Button type="submit" disabled={isSaving}>
               {isEditing ? 'Salvar Alterações' : 'Adicionar Modelo'}

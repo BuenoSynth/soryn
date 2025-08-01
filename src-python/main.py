@@ -33,7 +33,6 @@ def add_remote_api_model():
     required_fields = ['provider', 'api_key', 'model_id', 'name', 'api_model_name']
     if not all(field in data for field in required_fields):
         return jsonify({"erro": "Campos necessários ausentes"}), 400
-
     try:
         success, message = models_manager.add_remote_model(
             provider=data['provider'],
@@ -42,7 +41,6 @@ def add_remote_api_model():
             name=data['name'],
             api_model_name=data['api_model_name']
         )
-
         if success:
             return jsonify({"sucesso": message}), 201
         else:
