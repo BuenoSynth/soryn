@@ -27,6 +27,9 @@ release/
 user_config.json
 soryn_backend.log
 
+# Arquivos para inicio rapido
+start_backend.ps1
+start_project.bat
 # IDEs e Sistema Operacional
 .vscode/
 .idea/

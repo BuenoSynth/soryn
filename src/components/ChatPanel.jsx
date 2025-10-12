@@ -114,7 +114,7 @@ const ChatPanel = ({ allModels = [], initialHistory, onHistoryLoaded }) => {
     // A renderização (return) continua a mesma
     return (
         <div className="flex flex-col h-[calc(100vh-3rem)]">
-          <div className="flex-1 overflow-y-auto p-4 space-y-6">
+          <div className="flex-1 overflow-y-auto p-4">
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
                  <div className="p-4 bg-primary/10 rounded-full mb-4">
