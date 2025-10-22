@@ -52,7 +52,7 @@ const ModelsPanel = ({
           </Button>
           <Button className="gap-2" onClick={onAddModelClick}>
             <Plus className="w-4 h-4" />
-            Adicionar Modelo
+            Cadastrar API
           </Button>
         </div>
       </div>

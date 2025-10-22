@@ -4,34 +4,36 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { 
-  Send, 
-  Bot, 
-  Clock, 
-  Trophy, 
-  Loader2,
-  MessageSquare,
-  Sparkles,
-  Copy,
-  Check
+    Send, 
+    Bot, 
+    Clock, 
+    Trophy, 
+    Loader2,
+    MessageSquare,
+    Sparkles,
+    Copy,
+    Check,
+    Users,
+    ChevronsUpDown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import remarkGemoji from 'remark-gemoji';
 
-const DebatePanel = ({ selectedModels = [] }) => {
+const DebatePanel = ({ selectedModels = [], allModels = [], onModelToggle, isLoadingModels }) => {
     const [prompt, setPrompt] = useState('');
     const [isDebating, setIsDebating] = useState(false);
     const [debateResult, setDebateResult] = useState(null);
     const [copiedResponseId, setCopiedResponseId] = useState(null);
+    const [isSelectorOpen, setIsSelectorOpen] = useState(false);
 
     const handleStartDebate = async () => {
         if (!prompt.trim() || selectedModels.length < 2) return;
-
         setIsDebating(true);
         setDebateResult(null);
-
         try {
             const response = await fetch('http://localhost:5000/debate', {
                 method: 'POST',
@@ -41,12 +43,10 @@ const DebatePanel = ({ selectedModels = [] }) => {
                     models: selectedModels.map((model) => model.id)
                 })
             });
-
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.erro || 'Erro ao chamar a API de debate');
             }
-
             const data = await response.json();
             setDebateResult(data);
         } catch (error) {
@@ -57,10 +57,10 @@ const DebatePanel = ({ selectedModels = [] }) => {
     };
 
     const handleCopy = (textToCopy, responseId) => {
-      navigator.clipboard.writeText(textToCopy).then(() => {
-        setCopiedResponseId(responseId);
-        setTimeout(() => setCopiedResponseId(null), 2000); // Reseta o ícone após 2 segundos
-      });
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            setCopiedResponseId(responseId);
+            setTimeout(() => setCopiedResponseId(null), 2000);
+        });
     };
 
     const formatTime = (ms) => {
@@ -76,6 +76,55 @@ const DebatePanel = ({ selectedModels = [] }) => {
     };
 
     const canStartDebate = prompt.trim() && selectedModels.length >= 2 && !isDebating;
+
+    const renderModelSelectionContent = () => {
+        if (isLoadingModels) {
+            return (
+                <Card>
+                    <CardContent className="pt-6">
+                        <div className="text-center py-8 flex items-center justify-center gap-4">
+                            <Loader2 className="w-8 h-8 text-muted-foreground animate-spin" />
+                            <h3 className="font-medium">Carregando modelos...</h3>
+                        </div>
+                    </CardContent>
+                </Card>
+            );
+        }
+
+        if (allModels.length === 0) {
+            return (
+                <Card>
+                    <CardContent className="pt-6">
+                        <div className="text-center py-8">
+                            <Bot className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                            <h3 className="font-medium mb-2">Nenhum modelo encontrado</h3>
+                            <p className="text-sm text-muted-foreground">
+                                Verifique se o Ollama está rodando ou adicione um modelo na aba "Modelos".
+                            </p>
+                        </div>
+                    </CardContent>
+                </Card>
+            );
+        }
+
+        if (selectedModels.length < 2) {
+             return (
+                 <Card>
+                     <CardContent className="pt-6">
+                         <div className="text-center py-8">
+                             <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                             <h3 className="font-medium mb-2">Selecione os participantes</h3>
+                             <p className="text-sm text-muted-foreground">
+                                 Clique no botão "Selecionar modelos..." acima para escolher pelo menos 2 IAs para o debate.
+                             </p>
+                         </div>
+                     </CardContent>
+                 </Card>
+             );
+        }
+
+        return null;
+    };
 
     return (
         <div className="space-y-6">
@@ -95,12 +144,44 @@ const DebatePanel = ({ selectedModels = [] }) => {
                         disabled={isDebating}
                     />
                     <div className="flex items-center justify-between flex-wrap gap-2">
-                        <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-sm text-muted-foreground">Modelos:</span>
-                            {selectedModels.map((model) => (
-                                <Badge key={model.id} variant="secondary">{model.name}</Badge>
-                            ))}
-                        </div>
+                        <Popover open={isSelectorOpen} onOpenChange={setIsSelectorOpen}>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    aria-expanded={isSelectorOpen}
+                                    className="w-[250px] justify-between"
+                                    disabled={isLoadingModels || allModels.length === 0}
+                                >
+                                    <Users className="mr-2 h-4 w-4" />
+                                    {selectedModels.length > 0 ? `${selectedModels.length} modelo(s) selecionado(s)` : "Selecionar modelos..."}
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[250px] p-0">
+                                <Command>
+                                    <CommandInput placeholder="Buscar modelo..." />
+                                    <CommandList>
+                                        <CommandEmpty>Nenhum modelo encontrado.</CommandEmpty>
+                                        <CommandGroup>
+                                            {allModels.map((model) => {
+                                                const isSelected = selectedModels.some(m => m.id === model.id);
+                                                return (
+                                                    <CommandItem
+                                                        key={model.id}
+                                                        onSelect={() => onModelToggle(model)}
+                                                    >
+                                                        <Check className={cn("mr-2 h-4 w-4", isSelected ? "opacity-100" : "opacity-0")} />
+                                                        {model.name}
+                                                    </CommandItem>
+                                                );
+                                            })}
+                                        </CommandGroup>
+                                    </CommandList>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
+                        
                         <Button onClick={handleStartDebate} disabled={!canStartDebate} className="gap-2">
                             {isDebating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                             {isDebating ? 'Debatendo...' : 'Iniciar Debate'}
@@ -195,7 +276,7 @@ const DebatePanel = ({ selectedModels = [] }) => {
                                 <CardContent>
                                     {response.success ? (
                                         <div className="prose dark:prose-invert max-w-none text-sm leading-relaxed">
-                                            <ReactMarkdown remarkPlugins={[remarkGfm, remarkGemoji]}>
+                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                                 {response.response_text}
                                             </ReactMarkdown>
                                         </div>
@@ -211,19 +292,7 @@ const DebatePanel = ({ selectedModels = [] }) => {
                 </div>
             )}
 
-            {selectedModels.length < 2 && !debateResult && !isDebating && (
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="text-center py-8">
-                            <Bot className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                            <h3 className="font-medium mb-2">Selecione pelo menos 2 modelos</h3>
-                            <p className="text-sm text-muted-foreground">
-                                Vá para a aba "Modelos" para selecionar os modelos de IA que participarão do debate.
-                            </p>
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
+            {!isDebating && !debateResult && renderModelSelectionContent()}
         </div>
     );
 };

@@ -9,6 +9,7 @@ import ThemePanel from './components/ThemePanel';
 import ChatPanel from './components/ChatPanel';
 import HistoryPanel from './components/HistoryPanel';
 import './App.css';
+
 function App() {
   const [activeTab, setActiveTab] = useState('chat');
   const [selectedModels, setSelectedModels] = useState([]);
@@ -16,11 +17,19 @@ function App() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingModel, setEditingModel] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  
-  // Estado para carregar um chat do histórico
   const [historyToLoad, setHistoryToLoad] = useState(null);
+  
+  // --- NOVO ESTADO PARA CONTROLAR O CARREGAMENTO INICIAL ---
+  const [isLoadingModels, setIsLoadingModels] = useState(true);
 
   const fetchAllModels = async () => {
+    // Na primeira vez, garantimos que o estado de loading está ativo.
+    // Nas chamadas subsequentes (refresh), ele já estará como 'false'.
+    if (isLoadingModels === false) {
+      // Para o botão de refresh, podemos ter um loading visual específico se quisermos,
+      // mas o principal é garantir que a carga inicial seja gerenciada.
+    }
+
     try {
       const response = await fetch('http://localhost:5000/api/models');
       if (!response.ok) throw new Error('Falha na rede ao buscar modelos');
@@ -29,6 +38,8 @@ function App() {
     } catch (error) {
       console.error("Erro ao buscar a lista de modelos:", error);
       toast.error("Erro de Rede", { description: "Não foi possível carregar a lista de modelos." });
+    } finally {
+      setIsLoadingModels(false);
     }
   };
 
@@ -36,14 +47,13 @@ function App() {
     fetchAllModels();
   }, []);
 
-  // Função para lidar com a reutilização de um chat a partir do histórico
   const handleReuseChat = async (chatId) => {
     try {
         const response = await fetch(`http://localhost:5000/api/history/chat/${chatId}`);
         if (!response.ok) throw new Error('Falha ao buscar detalhes do chat.');
         const chatData = await response.json();
-        setHistoryToLoad(chatData); // Define os dados do histórico para carregar
-        setActiveTab('chat'); // Muda para a aba de chat
+        setHistoryToLoad(chatData);
+        setActiveTab('chat');
     } catch (error) {
         toast.error("Erro", { description: error.message });
     }
@@ -108,19 +118,22 @@ function App() {
         return <ChatPanel 
                   allModels={allModels} 
                   initialHistory={historyToLoad}
-                  onHistoryLoaded={() => setHistoryToLoad(null)} // Limpa o estado após carregar
+                  onHistoryLoaded={() => setHistoryToLoad(null)}
                 />;
       case 'history':
         return <HistoryPanel onReuseChat={handleReuseChat} allModels={allModels} />;
-
-      // Para as outras abas, mantemos um padding geral e scroll
       default:
         return (
           <div className="p-6 h-full overflow-y-auto">
             {(() => {
               switch (activeTab) {
                 case 'debate':
-                  return <DebatePanel selectedModels={selectedModels} />;
+                  return <DebatePanel 
+                            selectedModels={selectedModels} 
+                            allModels={allModels}
+                            onModelToggle={handleModelToggle}
+                            isLoadingModels={isLoadingModels}
+                         />;
                 case 'models':
                   return (
                     <ModelsPanel
@@ -134,6 +147,7 @@ function App() {
                       setIsAddModalOpen={handleCloseModal}
                       editingModel={editingModel}
                       onModelAdded={fetchAllModels}
+                      isLoadingModels={isLoadingModels}
                     />
                   );
                 case 'themes':
@@ -171,4 +185,3 @@ function App() {
 }
 
 export default App;
-

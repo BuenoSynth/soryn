@@ -1,3 +1,5 @@
+# src-python/models_manager.py (VERSÃO CORRIGIDA E COMPLETA)
+
 import json
 import os
 import asyncio
@@ -27,12 +29,11 @@ class ModelsManager:
         base_dir = Path(__file__).resolve().parent
         self.config_path = base_dir / "user_config.json"
         self.logger = logging.getLogger(__name__)
-        self.local_models = []
-        self.remote_models = []
+        
+        self.remote_models: List[ModelConfig] = self._load_user_config()
 
     def _load_user_config(self) -> List[ModelConfig]:
         if not os.path.exists(self.config_path):
-            # Cria um arquivo vazio se ele não existir
             with open(self.config_path, 'w', encoding='utf-8') as f:
                 json.dump({"remote_models": []}, f)
             return []
@@ -67,15 +68,15 @@ class ModelsManager:
                         data = await response.json()
                         ollama_models = []
                         for model_data in data.get("models", []):
-                            # A API usa 'name' para o ID completo (ex: llama2:7b)
                             model_id = model_data['name']
-                            # Pega o nome base para exibição (ex: llama2)
                             display_name = model_id.split(':')[0]
+                            # Calcula o tamanho em GB de forma segura
+                            size_gb = model_data.get('size', 0) / (1024**3)
                             ollama_models.append(ModelConfig(
                                 id=model_id,
                                 name=f"{display_name.capitalize()} (Local)",
                                 provider="ollama",
-                                description=f"Modelo de {model_data['size'] // (1024**3)} GB"
+                                description=f"Modelo de {size_gb:.2f} GB"
                             ))
                         logger.info(f"Detectados {len(ollama_models)} modelos do Ollama.")
                         return ollama_models
@@ -90,10 +91,6 @@ class ModelsManager:
             return []
 
     def add_remote_model(self, provider: str, api_key: str, model_id: str, name: str, api_model_name: str) -> tuple[bool, str]:
-        """
-        Adiciona uma nova config de API.
-        Retorna uma tupla (sucesso: bool, mensagem: str).
-        """
         if any(model.id.lower() == model_id.lower() for model in self.remote_models):
             msg = f"Modelo com ID '{model_id}' já existe."
             logger.warning(msg)
@@ -118,7 +115,6 @@ class ModelsManager:
         return True, msg
 
     def delete_remote_model(self, model_id: str) -> bool:
-            """Encontra e remove um modelo remoto da lista pelo seu ID."""
             initial_count = len(self.remote_models)
             self.remote_models = [model for model in self.remote_models if model.id != model_id]
             
@@ -131,10 +127,6 @@ class ModelsManager:
             return False
             
     def update_remote_model(self, model_id_to_update: str, new_data: dict) -> tuple[bool, str]:
-        """
-        Encontra um modelo pelo seu ID original e atualiza seus dados.
-        Retorna uma tupla (sucesso: bool, mensagem: str).
-        """
         model_to_update = next((model for model in self.remote_models if model.id == model_id_to_update), None)
 
         if not model_to_update:
@@ -142,14 +134,12 @@ class ModelsManager:
             logger.warning(msg)
             return False, msg
 
-        # Verifica se o novo nome de exibição já está em uso por OUTRO modelo
         new_name = f"{new_data['name']} (API)"
         if any(model.name.lower() == new_name.lower() and model.id != model_id_to_update for model in self.remote_models):
             msg = f"O nome de exibição '{new_data['name']}' já está em uso por outro modelo."
             logger.warning(msg)
             return False, msg
 
-        # Atualiza os campos do modelo encontrado
         model_to_update.name = new_name
         model_to_update.provider = new_data['provider']
         model_to_update.api_key = new_data['api_key']
@@ -162,5 +152,6 @@ class ModelsManager:
 
     async def get_unified_models_list(self) -> List[ModelConfig]:
         local_models = await self.discover_ollama_models()
+        # self.remote_models já está preenchido pelo __init__
         all_models = local_models + self.remote_models
         return all_models
