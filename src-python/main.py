@@ -9,7 +9,7 @@ from flask_cors import CORS
 from models_manager import ModelsManager
 from debate_engine import DebateEngine, DebateRequest
 from ai_inference import InferenceRequest
-import database as db  # Importa o nosso novo módulo de banco de dados
+import database as db
 
 # --- Configuração Inicial ---
 logging.basicConfig(
@@ -153,7 +153,7 @@ def delete_history_item(item_type, item_id):
         return jsonify({"erro": "Falha ao deletar o item."}), 500
 
 
-# --- Endpoints de Gerenciamento de Modelos (sem alterações) ---
+# --- Endpoints de Gerenciamento de Modelos ---
 
 @app.route('/api/models', methods=['GET'])
 async def get_all_models():
@@ -165,7 +165,6 @@ async def get_all_models():
         logger.error(f"Erro ao obter lista de modelos: {e}", exc_info=True)
         return jsonify({"erro": "Falha ao buscar modelos"}), 500
 
-# ... (As rotas /api/models/remote de POST, DELETE e PUT continuam aqui, sem alterações) ...
 @app.route('/api/models/remote', methods=['POST'])
 def add_remote_api_model():
     """Adiciona um modelo remoto via API."""

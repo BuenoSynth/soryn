@@ -1,13 +1,11 @@
-// src/components/ui/ModelsPanel.jsx (VERSÃO COM BOTÃO DE ATUALIZAR)
-
-import React, { useState } from 'react'; // Adicionado useState
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Plus, Bot, Trash2, Pencil, RefreshCw } from 'lucide-react';
 import AddRemoteModelDialog from './AddRemoteModelDialog';
-import { cn } from '@/lib/utils'; // Importa o cn para animação
+import { cn } from '@/lib/utils';
 
 const ModelsPanel = ({
   allModels = [],
@@ -16,19 +14,19 @@ const ModelsPanel = ({
   onAddModelClick,
   isAddModalOpen,
   setIsAddModalOpen,
-  onModelAdded, // Esta é a nossa função fetchAllModels
+  onModelAdded,
   onModelDelete,
   onModelEdit,
   editingModel
 }) => {
   
-  // --- NOVO: Estado para controlar o feedback visual do botão de atualizar ---
+  // Estado para controlar o feedback visual do botão de atualizar
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // --- NOVO: Função para lidar com o clique no botão de atualizar ---
+  // Função para lidar com o clique no botão de atualizar
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await onModelAdded(); // Reutiliza a função que busca todos os modelos
+    await onModelAdded();
     setIsRefreshing(false);
   };
 
@@ -45,7 +43,6 @@ const ModelsPanel = ({
             Gerencie e selecione os modelos que participarão dos debates
           </p>
         </div>
-        {/* --- NOVO: Wrapper para agrupar os botões de ação --- */}
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={handleRefresh} disabled={isRefreshing}>
             <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
@@ -92,7 +89,6 @@ const ModelsPanel = ({
   );
 };
 
-// O componente ModelCard não precisa de alterações
 const ModelCard = ({ model, isSelected, onToggle, onDelete, onEdit }) => {
   return (
     <div className="p-4 border rounded-lg transition-colors hover:bg-muted/50">

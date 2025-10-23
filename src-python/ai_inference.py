@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class InferenceRequest:
-    """Requisição de inferência para um modelo. (VERSÃO COMPLETA)"""
+    """Requisição de inferência para um modelo."""
     model_id: str
     prompt: str
     temperature: Optional[float] = None
@@ -29,7 +29,7 @@ class InferenceRequest:
 
 @dataclass
 class InferenceResponse:
-    """Resposta de inferência de um modelo. (VERSÃO COMPLETA)"""
+    """Resposta de inferência de um modelo."""
     model_id: str
     response_text: str
     tokens_used: int

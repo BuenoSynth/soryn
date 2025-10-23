@@ -259,7 +259,6 @@ class DebateEngine:
         
         logger.info(f"Iniciando debate {debate_id} com {len(request.model_ids)} modelos")
         
-        # --- INÍCIO DA CORREÇÃO ---
         # 1. Pede ao gerenciador a lista unificada e atualizada de TODOS os modelos.
         all_available_models = await self.models_manager.get_unified_models_list()
         

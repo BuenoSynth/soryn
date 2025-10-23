@@ -7,7 +7,6 @@ import { MessageSquare, Bot, Trash2, Eye, Repeat, Loader2, History as HistoryIco
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 
-// --- Componente de Overlay (sem alterações) ---
 const ExpandedDetailsView = ({ isOpen, onClose, details, initialBounds, onDelete, onReuse, allModels = [] }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [isContentVisible, setIsContentVisible] = useState(false);
@@ -130,8 +129,6 @@ const ExpandedDetailsView = ({ isOpen, onClose, details, initialBounds, onDelete
     );
 };
 
-
-// --- HistoryCard com a LÓGICA DE EXIBIÇÃO CORRIGIDA ---
 const HistoryCard = ({ item, onSelect, onReuse, onDelete }) => {
     return (
         <Card className="flex flex-col justify-between group relative transition-all duration-300 hover:border-primary cursor-pointer" onClick={onSelect}>
@@ -166,7 +163,6 @@ const HistoryCard = ({ item, onSelect, onReuse, onDelete }) => {
         </Card>
     );
 };
-
 
 const HistoryPanel = ({ onReuseChat, allModels = [] }) => {
     const [history, setHistory] = useState([]);

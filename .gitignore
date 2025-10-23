@@ -26,10 +26,8 @@ release/
 # NUNCA comite suas chaves de API!
 user_config.json
 soryn_backend.log
+soryn_history.db
 
-# Arquivos para inicio rapido
-start_backend.ps1
-start_project.bat
 # IDEs e Sistema Operacional
 .vscode/
 .idea/

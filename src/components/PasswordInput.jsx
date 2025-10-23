@@ -14,7 +14,6 @@ const PasswordInput = React.forwardRef(({ className, ...props }, ref) => {
         className={className}
         ref={ref}
         {...props}
-        // Este atributo é a instrução padrão para o navegador
         autoComplete="new-password"
       />
       <Button

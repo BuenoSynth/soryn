@@ -18,8 +18,6 @@ function App() {
   const [editingModel, setEditingModel] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [historyToLoad, setHistoryToLoad] = useState(null);
-  
-  // --- NOVO ESTADO PARA CONTROLAR O CARREGAMENTO INICIAL ---
   const [isLoadingModels, setIsLoadingModels] = useState(true);
 
   const fetchAllModels = async () => {

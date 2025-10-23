@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-// Componente para um único balão de mensagem (sem alterações)
+// Componente para um único balão de mensagem
 const Message = ({ role, content }) => {
   const [hasCopied, setHasCopied] = useState(false);
   const handleCopy = () => {
@@ -44,16 +44,14 @@ const ChatPanel = ({ allModels = [], initialHistory, onHistoryLoaded }) => {
     const messagesEndRef = useRef(null);
     const textareaRef = useRef(null);
 
-    // --- CORREÇÃO APLICADA AQUI ---
     useEffect(() => {
         // Este efeito só deve agir se 'initialHistory' for fornecido.
         if (initialHistory) {
             setMessages(initialHistory.messages || []);
             setSelectedModelId(initialHistory.model_id);
             setCurrentChatId(initialHistory.id);
-            onHistoryLoaded(); // Informa à App que o histórico foi carregado
+            onHistoryLoaded();
         }
-        // A lógica 'else' foi removida para impedir que o estado seja limpo indevidamente.
     }, [initialHistory, onHistoryLoaded]);
 
     useEffect(() => {
@@ -111,7 +109,6 @@ const ChatPanel = ({ allModels = [], initialHistory, onHistoryLoaded }) => {
     const availableModels = allModels.filter(m => m.is_available);
     const canSendMessage = prompt.trim() && selectedModelId && !isLoading;
 
-    // A renderização (return) continua a mesma
     return (
         <div className="flex flex-col h-[calc(100vh-3rem)]">
           <div className="flex-1 overflow-y-auto p-4">

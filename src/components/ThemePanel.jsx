@@ -2,7 +2,6 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Palette, Sun, Moon, Monitor } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { useTheme } from '@/components/providers/theme-provider'; // Importa nosso hook
 
 const ThemePanel = () => {

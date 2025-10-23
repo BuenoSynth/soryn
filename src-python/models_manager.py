@@ -1,5 +1,3 @@
-# src-python/models_manager.py (VERSÃO CORRIGIDA E COMPLETA)
-
 import json
 import os
 import asyncio
