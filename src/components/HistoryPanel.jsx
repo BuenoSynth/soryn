@@ -7,6 +7,17 @@ import { MessageSquare, Bot, Trash2, Eye, Repeat, Loader2, History as HistoryIco
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 const ExpandedDetailsView = ({ isOpen, onClose, details, initialBounds, onDelete, onReuse, allModels = [] }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [isContentVisible, setIsContentVisible] = useState(false);
@@ -64,8 +75,8 @@ const ExpandedDetailsView = ({ isOpen, onClose, details, initialBounds, onDelete
                 <div className={cn("flex flex-col h-full transition-opacity duration-300", isContentVisible ? "opacity-100" : "opacity-0")}>
                     <div className="p-4 border-b flex items-center justify-between flex-shrink-0 gap-4">
                         <div>
-                             <h2 className="text-lg font-semibold capitalize">{details ? `${details.type}: ${details.title || details.prompt}` : 'Carregando...'}</h2>
-                             {details && (
+                            <h2 className="text-lg font-semibold capitalize">{details ? `${details.type}: ${details.title || details.prompt}` : 'Carregando...'}</h2>
+                            {details && (
                                 <div className="flex items-center flex-wrap gap-x-2 text-sm text-muted-foreground mt-1">
                                     <span>{new Date(details.created_at || details.timestamp).toLocaleString('pt-BR')}</span>
                                     {modelName && (
@@ -75,14 +86,15 @@ const ExpandedDetailsView = ({ isOpen, onClose, details, initialBounds, onDelete
                                         </>
                                     )}
                                 </div>
-                             )}
+                            )}
                         </div>
                         <div className="flex items-center flex-shrink-0">
-                             {details?.type === 'chat' && (
+                            {details?.type === 'chat' && (
                                 <Button variant="ghost" size="sm" onClick={onReuse} className="hidden sm:inline-flex gap-2">
                                     <Repeat className="w-4 h-4" /> Reutilizar
                                 </Button>
                             )}
+                            {/* <<< ALTERAÇÃO: A prop 'onDelete' agora vem do 'HistoryPanel' e vai chamar o 'promptDelete' */}
                             <Button variant="ghost" size="sm" onClick={onDelete} className="hidden sm:inline-flex text-red-500 hover:text-red-500 hover:bg-red-500/10 gap-2">
                                 <Trash2 className="w-4 h-4" /> Excluir
                             </Button>
@@ -92,11 +104,11 @@ const ExpandedDetailsView = ({ isOpen, onClose, details, initialBounds, onDelete
                         </div>
                     </div>
                     <ScrollArea className="flex-1 p-4 md:p-6">
-                       {!details ? (
-                           <div className="flex items-center justify-center h-full">
-                               <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-                           </div>
-                       ) : isChat ? (
+                        {!details ? (
+                            <div className="flex items-center justify-center h-full">
+                                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                            </div>
+                        ) : isChat ? (
                             <div className="space-y-4">
                                 {messages.map((msg, index) => (
                                     <div key={index} className={cn("flex items-start gap-3", msg.role === 'user' ? 'justify-end' : '')}>
@@ -109,18 +121,18 @@ const ExpandedDetailsView = ({ isOpen, onClose, details, initialBounds, onDelete
                             </div>
                         ) : (
                              <div className="space-y-4">
-                                 <h3 className="font-semibold text-lg">Vencedor: {details.winner_model_id || 'N/A'}</h3>
-                                 {details.evaluation_reasoning && <p className="text-sm text-muted-foreground italic">"{details.evaluation_reasoning}"</p>}
-                                 {winnerResponse && (
-                                     <Card className="bg-muted/50">
-                                         <CardContent className="pt-6">
+                                <h3 className="font-semibold text-lg">Vencedor: {details.winner_model_id || 'N/A'}</h3>
+                                {details.evaluation_reasoning && <p className="text-sm text-muted-foreground italic">"{details.evaluation_reasoning}"</p>}
+                                {winnerResponse && (
+                                    <Card className="bg-muted/50">
+                                        <CardContent className="pt-6">
                                             <div className="prose dark:prose-invert max-w-none text-sm">
                                                 <ReactMarkdown>{winnerResponse.response_text}</ReactMarkdown>
                                             </div>
-                                         </CardContent>
-                                     </Card>
-                                 )}
-                             </div>
+                                        </CardContent>
+                                    </Card>
+                                )}
+                            </div>
                         )}
                     </ScrollArea>
                 </div>
@@ -146,7 +158,7 @@ const HistoryCard = ({ item, onSelect, onReuse, onDelete }) => {
                 </div>
             </CardHeader>
             <CardContent className="pt-0 pb-4 px-4 flex items-center gap-1">
-                 <div className="flex items-center ml-auto">
+                <div className="flex items-center ml-auto">
                     {item.type === 'chat' && (
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); onReuse(); }} title="Reutilizar Chat">
                             <Repeat className="w-4 h-4" />
@@ -155,10 +167,11 @@ const HistoryCard = ({ item, onSelect, onReuse, onDelete }) => {
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); onSelect(e); }} title="Visualizar">
                         <Eye className="w-4 h-4" />
                     </Button>
+                    {/* <<< ALTERAÇÃO: A prop 'onDelete' agora vem do 'HistoryPanel' e vai chamar o 'promptDelete' */}
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); onDelete(); }} title="Excluir">
                         <Trash2 className="w-4 h-4 text-red-500" />
                     </Button>
-                 </div>
+                </div>
             </CardContent>
         </Card>
     );
@@ -170,6 +183,10 @@ const HistoryPanel = ({ onReuseChat, allModels = [] }) => {
     const [selectedItemDetails, setSelectedItemDetails] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [cardBounds, setCardBounds] = useState(null);
+
+    // <<< ADIÇÃO: Estados para o modal de CONFIRMAÇÃO
+    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState(null);
 
     const fetchHistory = async () => {
         setIsLoading(true);
@@ -190,7 +207,7 @@ const HistoryPanel = ({ onReuseChat, allModels = [] }) => {
     }, []);
 
     const handleViewDetails = async (item, event) => {
-        const cardElement = event.currentTarget;
+        const cardElement = event.currentTarget.closest('.group'); // <<< Garantir que pega o Card
         if (!cardElement) return;
         
         setCardBounds(cardElement.getBoundingClientRect());
@@ -223,24 +240,35 @@ const HistoryPanel = ({ onReuseChat, allModels = [] }) => {
         }
     }, [isModalOpen]);
     
-    const handleDeleteItem = (item) => {
-        toast("Tem certeza?", {
-            description: `Deseja realmente excluir este ${item.type}?`,
-            action: {
-                label: "Confirmar",
-                onClick: async () => {
-                    try {
-                        const response = await fetch(`http://localhost:5000/api/history/${item.type}/${item.id}`, { method: 'DELETE' });
-                        if (!response.ok) throw new Error('Falha ao excluir.');
-                        toast.success(`${item.type.charAt(0).toUpperCase() + item.type.slice(1)} excluído com sucesso.`);
-                        fetchHistory();
-                    } catch (error) {
-                        toast.error("Erro", { description: error.message });
-                    }
-                },
-            },
-            cancel: { label: "Cancelar" },
-        });
+    // <<< REMOÇÃO: A função 'handleDeleteItem' antiga foi removida.
+    
+    // <<< ADIÇÃO: Nova função para ABRIR o modal de confirmação
+    const promptDelete = (item) => {
+        setItemToDelete(item);
+        setIsConfirmModalOpen(true);
+    };
+
+    // <<< ADIÇÃO: Nova função para CONFIRMAR a exclusão (lógica movida para cá)
+    const handleConfirmDelete = async () => {
+        if (!itemToDelete) return;
+
+        try {
+            const response = await fetch(`http://localhost:5000/api/history/${itemToDelete.type}/${itemToDelete.id}`, { method: 'DELETE' });
+            if (!response.ok) throw new Error('Falha ao excluir.');
+            
+            toast.success(`${itemToDelete.type.charAt(0).toUpperCase() + itemToDelete.type.slice(1)} excluído com sucesso.`);
+            fetchHistory();
+
+            if (isModalOpen && selectedItemDetails?.id === itemToDelete.id) {
+                handleCloseModal();
+            }
+        } catch (error) {
+            toast.error("Erro", { description: error.message });
+        } finally {
+            // Fecha o modal de confirmação
+            setIsConfirmModalOpen(false);
+            setItemToDelete(null);
+        }
     };
     
     const handleReuse = (item) => {
@@ -267,8 +295,6 @@ const HistoryPanel = ({ onReuseChat, allModels = [] }) => {
                 <ScrollArea className="flex-1">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pr-4">
                         {history.map(item => {
-                            // A API de lista não fornece o model_id, então modelName será undefined aqui.
-                            // A lógica permanece para o caso da API mudar no futuro.
                             const model = allModels.find(m => m.id === item.model_id);
                             const modelName = model ? model.name : item.model_id;
                             
@@ -279,7 +305,7 @@ const HistoryPanel = ({ onReuseChat, allModels = [] }) => {
                                     modelName={modelName}
                                     onSelect={(e) => handleViewDetails(item, e)}
                                     onReuse={() => handleReuse(item)}
-                                    onDelete={() => handleDeleteItem(item)}
+                                    onDelete={() => promptDelete(item)}
                                 />
                             );
                         })}
@@ -304,13 +330,35 @@ const HistoryPanel = ({ onReuseChat, allModels = [] }) => {
                     handleCloseModal();
                 }}
                 onDelete={() => {
-                    if (selectedItemDetails) handleDeleteItem(selectedItemDetails);
-                    handleCloseModal();
+                    if (selectedItemDetails) promptDelete(selectedItemDetails);
                 }}
             />
+
+            <AlertDialog open={isConfirmModalOpen} onOpenChange={setIsConfirmModalOpen}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {/* Mensagem dinâmica */}
+                    Deseja realmente excluir este {itemToDelete?.type}? 
+                    Essa ação não pode ser desfeita.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel onClick={() => setItemToDelete(null)}>
+                    Cancelar
+                  </AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={handleConfirmDelete} 
+                    variant="destructive"
+                  >
+                    Confirmar Exclusão
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 };
 
 export default HistoryPanel;
-

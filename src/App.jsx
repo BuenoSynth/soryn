@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
 import Layout from './components/Layout';
 import Sidebar from './components/Sidebar';
@@ -8,7 +7,17 @@ import ModelsPanel from './components/ModelsPanel';
 import ThemePanel from './components/ThemePanel';
 import ChatPanel from './components/ChatPanel';
 import HistoryPanel from './components/HistoryPanel';
-import './App.css';
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 function App() {
   const [activeTab, setActiveTab] = useState('chat');
@@ -19,6 +28,10 @@ function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [historyToLoad, setHistoryToLoad] = useState(null);
   const [isLoadingModels, setIsLoadingModels] = useState(true);
+
+  // <<< ADIÇÃO: Estados para o modal de confirmação de exclusão
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [modelToDelete, setModelToDelete] = useState(null); // Armazena o ID do modelo
 
   const fetchAllModels = async () => {
     // Na primeira vez, garantimos que o estado de loading está ativo.
@@ -57,36 +70,46 @@ function App() {
     }
   };
 
-  const handleModelDelete = (modelIdToDelete) => {
-    toast("Tem certeza?", {
-      description: `Deseja realmente remover o modelo ${modelIdToDelete}?`,
-      action: {
-        label: "Confirmar",
-        onClick: async () => {
-          const originalModels = [...allModels];
-          const originalSelectedModels = [...selectedModels];
-          setAllModels(prev => prev.filter(model => model.id !== modelIdToDelete));
-          setSelectedModels(prev => prev.filter(model => model.id !== modelIdToDelete));
-
-          try {
-            const response = await fetch(`http://localhost:5000/api/models/remote/${modelIdToDelete}`, {
-              method: 'DELETE',
-            });
-            if (!response.ok) {
-              throw new Error('Falha ao remover o modelo no backend.');
-            }
-            toast.success("Modelo Removido", { description: `O modelo ${modelIdToDelete} foi removido com sucesso.` });
-          } catch (error) {
-            console.error("Erro ao remover modelo, revertendo a UI:", error);
-            setAllModels(originalModels);
-            setSelectedModels(originalSelectedModels);
-            toast.error("Falha ao Remover", { description: "Não foi possível remover o modelo. Tente novamente." });
-          }
-        },
-      },
-      cancel: { label: "Cancelar" },
-    });
+  // <<< ALTERAÇÃO: 'handleModelDelete' agora se chama 'promptModelDelete'
+  // Esta função agora APENAS abre o modal de confirmação.
+  const promptModelDelete = (modelIdToDelete) => {
+    setModelToDelete(modelIdToDelete); // Salva o ID do modelo
+    setIsConfirmModalOpen(true);    // Abre o modal
   };
+
+  // <<< ADIÇÃO: Nova função para a lógica de exclusão, chamada pelo modal
+  const handleConfirmDelete = async () => {
+    if (!modelToDelete) return;
+
+    const modelIdToDelete = modelToDelete; // Pega o ID salvo
+    const originalModels = [...allModels];
+    const originalSelectedModels = [...selectedModels];
+    
+    // Otimistic UI update
+    setAllModels(prev => prev.filter(model => model.id !== modelIdToDelete));
+    setSelectedModels(prev => prev.filter(model => model.id !== modelIdToDelete));
+
+    try {
+      const response = await fetch(`http://localhost:5000/api/models/remote/${modelIdToDelete}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        throw new Error('Falha ao remover o modelo no backend.');
+      }
+      toast.success("Modelo Removido", { description: `O modelo ${modelIdToDelete} foi removido com sucesso.` });
+    } catch (error) {
+      console.error("Erro ao remover modelo, revertendo a UI:", error);
+      setAllModels(originalModels);
+      setSelectedModels(originalSelectedModels);
+      toast.error("Falha ao Remover", { description: "Não foi possível remover o modelo. Tente novamente." });
+    } finally {
+      // Fecha o modal e limpa o estado
+      setIsConfirmModalOpen(false);
+      setModelToDelete(null);
+    }
+  };
+  
+  // <<< O 'handleModelDelete' original (que usava toast de confirmação) foi substituído
 
   const handleModelToggle = (model) => {
     setSelectedModels(prev => {
@@ -131,7 +154,7 @@ function App() {
                             allModels={allModels}
                             onModelToggle={handleModelToggle}
                             isLoadingModels={isLoadingModels}
-                         />;
+                          />;
                 case 'models':
                   return (
                     <ModelsPanel
@@ -140,7 +163,8 @@ function App() {
                       onModelToggle={handleModelToggle}
                       onAddModelClick={handleOpenAddModel}
                       onModelEdit={handleOpenEditModal}
-                      onModelDelete={handleModelDelete}
+                      // <<< ALTERAÇÃO: Passa a nova função 'promptModelDelete'
+                      onModelDelete={promptModelDelete}
                       isAddModalOpen={isAddModalOpen}
                       setIsAddModalOpen={handleCloseModal}
                       editingModel={editingModel}
@@ -175,9 +199,33 @@ function App() {
         />
         <main className="flex-1 overflow-hidden">
           {renderContent()}
+
+          {/* <<< ADIÇÃO: O AlertDialog para confirmar a exclusão do modelo */}
+          <AlertDialog open={isConfirmModalOpen} onOpenChange={setIsConfirmModalOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Deseja realmente remover o modelo <strong>{modelToDelete}</strong>?
+                  Esta ação não pode ser desfeita.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setModelToDelete(null)}>
+                  Cancelar
+                </AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={handleConfirmDelete} 
+                  variant="destructive"
+                >
+                  Confirmar Remoção
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
         </main>
       </div>
-      <Toaster richColors position="top-right" />
     </Layout>
   );
 }
