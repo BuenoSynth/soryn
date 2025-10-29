@@ -6,6 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { 
     Send, 
     Bot, 
@@ -17,7 +19,9 @@ import {
     Copy,
     Check,
     Users,
-    ChevronsUpDown
+    ChevronsUpDown,
+    FileText,
+    List
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
@@ -25,6 +29,8 @@ import remarkGfm from 'remark-gfm';
 
 const DebatePanel = ({ selectedModels = [], allModels = [], onModelToggle, isLoadingModels }) => {
     const [prompt, setPrompt] = useState('');
+    const [keywords, setKeywords] = useState('');
+    const [expectedTopics, setExpectedTopics] = useState('');
     const [isDebating, setIsDebating] = useState(false);
     const [debateResult, setDebateResult] = useState(null);
     const [copiedResponseId, setCopiedResponseId] = useState(null);
@@ -40,7 +46,9 @@ const DebatePanel = ({ selectedModels = [], allModels = [], onModelToggle, isLoa
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     prompt,
-                    models: selectedModels.map((model) => model.id)
+                    models: selectedModels.map((model) => model.id),
+                    keywords: keywords,
+                    expected_topics: expectedTopics
                 })
             });
             if (!response.ok) {
@@ -143,6 +151,36 @@ const DebatePanel = ({ selectedModels = [], allModels = [], onModelToggle, isLoa
                         className="min-h-[120px] resize-none"
                         disabled={isDebating}
                     />
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="keywords" className="flex items-center gap-2 text-muted-foreground">
+                                <FileText className="w-4 h-4" />
+                                Palavras-chave (opcional)
+                            </Label>
+                            <Input
+                                id="keywords"
+                                placeholder="Ex: python, performance, rápido"
+                                value={keywords}
+                                onChange={(e) => setKeywords(e.target.value)}
+                                disabled={isDebating}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="topics" className="flex items-center gap-2 text-muted-foreground">
+                                <List className="w-4 h-4" />
+                                Tópicos Esperados (opcional)
+                            </Label>
+                            <Input
+                                id="topics"
+                                placeholder="Ex: história, análise de código"
+                                value={expectedTopics}
+                                onChange={(e) => setExpectedTopics(e.target.value)}
+                                disabled={isDebating}
+                            />
+                        </div>
+                    </div>
+                    
                     <div className="flex items-center justify-between flex-wrap gap-2">
                         <Popover open={isSelectorOpen} onOpenChange={setIsSelectorOpen}>
                             <PopoverTrigger asChild>
@@ -237,58 +275,59 @@ const DebatePanel = ({ selectedModels = [], allModels = [], onModelToggle, isLoa
                             </p>
                         </CardContent>
                     </Card>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        {debateResult.responses.map((response, index) => {
+                            const isWinner = response.model_id === debateResult.winner_model_id;
+                            const modelDetails = selectedModels.find(m => m.id === response.model_id);
 
-                    {debateResult.responses.map((response, index) => {
-                        const isWinner = response.model_id === debateResult.winner_model_id;
-                        const modelDetails = selectedModels.find(m => m.id === response.model_id);
-
-                        return (
-                            <Card 
-                                key={index} 
-                                className={cn("transition-all", isWinner && "border-green-500 ring-2 ring-green-500/50")}
-                            >
-                                <CardHeader className="flex flex-row items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <Bot className="w-5 h-5" />
-                                        <CardTitle className="text-lg">{modelDetails?.name || response.model_id}</CardTitle>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <Button 
-                                            variant="ghost" 
-                                            size="icon" 
-                                            className="h-8 w-8"
-                                            onClick={() => handleCopy(response.response_text, response.model_id)}
-                                        >
-                                            {copiedResponseId === response.model_id ? (
-                                                <Check className="h-4 w-4 text-green-500" />
-                                            ) : (
-                                                <Copy className="h-4 w-4" />
-                                            )}
-                                        </Button>
-                                        {isWinner && (
-                                            <Badge variant="default" className="bg-green-600 gap-1">
-                                                <Sparkles className="w-3 h-3" />
-                                                Vencedor
-                                            </Badge>
-                                        )}
-                                    </div>
-                                </CardHeader>
-                                <CardContent>
-                                    {response.success ? (
-                                        <div className="prose dark:prose-invert max-w-none text-sm leading-relaxed">
-                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                                {response.response_text}
-                                            </ReactMarkdown>
+                            return (
+                                <Card 
+                                    key={index} 
+                                    className={cn("transition-all", isWinner && "border-green-500 ring-2 ring-green-500/50")}
+                                >
+                                    <CardHeader className="flex flex-row items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <Bot className="w-5 h-5" />
+                                            <CardTitle className="text-lg">{modelDetails?.name || response.model_id}</CardTitle>
                                         </div>
-                                    ) : (
-                                        <p className="text-sm text-red-500">
-                                            Falha na geração da resposta: {response.error_message}
-                                        </p>
-                                    )}
-                                </CardContent>
-                            </Card>
-                        );
-                    })}
+                                        <div className="flex items-center gap-2">
+                                            <Button 
+                                                variant="ghost" 
+                                                size="icon" 
+                                                className="h-8 w-8"
+                                                onClick={() => handleCopy(response.response_text, response.model_id)}
+                                            >
+                                                {copiedResponseId === response.model_id ? (
+                                                    <Check className="h-4 w-4 text-green-500" />
+                                                ) : (
+                                                    <Copy className="h-4 w-4" />
+                                                )}
+                                            </Button>
+                                            {isWinner && (
+                                                <Badge variant="default" className="bg-green-600 gap-1">
+                                                    <Sparkles className="w-3 h-3" />
+                                                    Vencedor
+                                                </Badge>
+                                            )}
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent>
+                                        {response.success ? (
+                                            <div className="prose dark:prose-invert max-w-none text-sm leading-relaxed">
+                                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                    {response.response_text}
+                                                </ReactMarkdown>
+                                            </div>
+                                        ) : (
+                                            <p className="text-sm text-red-500">
+                                                Falha na geração da resposta: {response.error_message}
+                                            </p>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            );
+                        })}
+                    </div>
                 </div>
             )}
 

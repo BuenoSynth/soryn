@@ -102,10 +102,27 @@ async def handle_debate():
         return jsonify({"erro": "JSON deve conter 'prompt' e 'models'"}), 400
 
     try:
+        # Extrai os novos critérios do JSON.
+        # Usamos .get() para que eles sejam opcionais (fallback para {} e [])
+        
+        # Converte o 'keywords' (string separada por vírgula) em uma lista
+        keywords_str = data.get('keywords', '')
+        keywords_list = [k.strip() for k in keywords_str.split(',') if k.strip()]
+        
+        # Converte o 'expected_topics' (string separada por vírgula) em uma lista
+        topics_str = data.get('expected_topics', '')
+        topics_list = [t.strip() for t in topics_str.split(',') if t.strip()]
+
+        evaluation_criteria = {
+            "keywords": keywords_list,
+            "expected_topics": topics_list
+        }
+        
+        # Popula o DebateRequest com os critérios
         debate_request = DebateRequest(
             prompt=data['prompt'],
             model_ids=data['models'],
-            evaluation_criteria={}
+            evaluation_criteria=evaluation_criteria
         )
         
         # Conduz o debate
