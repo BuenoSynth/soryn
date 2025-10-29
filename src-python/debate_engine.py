@@ -1,8 +1,3 @@
-"""
-Motor de debate entre modelos de IA para o Soryn.
-Responsável por orquestrar debates e avaliar respostas.
-"""
-
 import asyncio
 import json
 import time

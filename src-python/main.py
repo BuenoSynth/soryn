@@ -28,7 +28,6 @@ db.initialize_database()
 models_manager = ModelsManager()
 debate_engine = DebateEngine(models_manager=models_manager)
 
-
 # --- Endpoints Principais da Aplicação ---
 
 @app.route('/chat', methods=['POST'])
@@ -52,14 +51,33 @@ async def handle_chat():
             # Se for uma continuação, apenas adiciona a mensagem do usuário
             db.add_message_to_chat(chat_id, 'user', user_prompt)
 
-        # Busca a configuração do modelo para a inferência
+        # Buscar o histórico COMPLETO do chat (que já inclui o prompt acima)
+        chat_history_data = db.get_chat_history(chat_id)
+        if not chat_history_data:
+            return jsonify({"erro": "Falha ao buscar histórico do chat."}), 500
+        
+        # Formatar o histórico para o formato de API
+        # A função get_chat_history retorna um dict com a chave 'messages'
+        messages_history = []
+        for msg in chat_history_data['messages']:
+            messages_history.append({
+                "role": msg['role'],
+                "content": msg['content']
+            })
+
+        # Busca a configuração do modelo
         all_models = await models_manager.get_unified_models_list()
         model_config = next((m for m in all_models if m.id == model_id), None)
         if not model_config:
             return jsonify({"erro": f"Modelo '{model_id}' não encontrado."}), 404
 
-        # Executa a inferência para obter a resposta do assistente
-        inference_req = InferenceRequest(model_id=model_id, prompt=user_prompt)
+        # Executa a inferência com o histórico completo
+        inference_req = InferenceRequest(
+            model_id=model_id,
+            prompt=user_prompt,  # Mantém para fallback (embora não deva ser usado)
+            messages=messages_history  # PASSANDO O HISTÓRICO
+        )
+        
         response = await debate_engine.run_single_inference(inference_req, model_config)
 
         if response.success:

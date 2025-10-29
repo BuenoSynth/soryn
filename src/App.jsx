@@ -29,7 +29,7 @@ function App() {
   const [historyToLoad, setHistoryToLoad] = useState(null);
   const [isLoadingModels, setIsLoadingModels] = useState(true);
 
-  // <<< ADIÇÃO: Estados para o modal de confirmação de exclusão
+  // Estados para o modal de confirmação de exclusão
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [modelToDelete, setModelToDelete] = useState(null); // Armazena o ID do modelo
 
@@ -70,14 +70,13 @@ function App() {
     }
   };
 
-  // <<< ALTERAÇÃO: 'handleModelDelete' agora se chama 'promptModelDelete'
-  // Esta função agora APENAS abre o modal de confirmação.
+  // Esta função APENAS abre o modal de confirmação.
   const promptModelDelete = (modelIdToDelete) => {
     setModelToDelete(modelIdToDelete); // Salva o ID do modelo
     setIsConfirmModalOpen(true);    // Abre o modal
   };
 
-  // <<< ADIÇÃO: Nova função para a lógica de exclusão, chamada pelo modal
+  // Função para a lógica de exclusão, chamada pelo modal
   const handleConfirmDelete = async () => {
     if (!modelToDelete) return;
 
@@ -108,8 +107,6 @@ function App() {
       setModelToDelete(null);
     }
   };
-  
-  // <<< O 'handleModelDelete' original (que usava toast de confirmação) foi substituído
 
   const handleModelToggle = (model) => {
     setSelectedModels(prev => {
@@ -163,7 +160,6 @@ function App() {
                       onModelToggle={handleModelToggle}
                       onAddModelClick={handleOpenAddModel}
                       onModelEdit={handleOpenEditModal}
-                      // <<< ALTERAÇÃO: Passa a nova função 'promptModelDelete'
                       onModelDelete={promptModelDelete}
                       isAddModalOpen={isAddModalOpen}
                       setIsAddModalOpen={handleCloseModal}
@@ -200,7 +196,7 @@ function App() {
         <main className="flex-1 overflow-hidden">
           {renderContent()}
 
-          {/* <<< ADIÇÃO: O AlertDialog para confirmar a exclusão do modelo */}
+          {/* AlertDialog para confirmar a exclusão do modelo */}
           <AlertDialog open={isConfirmModalOpen} onOpenChange={setIsConfirmModalOpen}>
             <AlertDialogContent>
               <AlertDialogHeader>

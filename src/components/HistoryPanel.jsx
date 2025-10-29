@@ -94,7 +94,6 @@ const ExpandedDetailsView = ({ isOpen, onClose, details, initialBounds, onDelete
                                     <Repeat className="w-4 h-4" /> Reutilizar
                                 </Button>
                             )}
-                            {/* <<< ALTERAÇÃO: A prop 'onDelete' agora vem do 'HistoryPanel' e vai chamar o 'promptDelete' */}
                             <Button variant="ghost" size="sm" onClick={onDelete} className="hidden sm:inline-flex text-red-500 hover:text-red-500 hover:bg-red-500/10 gap-2">
                                 <Trash2 className="w-4 h-4" /> Excluir
                             </Button>
@@ -167,7 +166,6 @@ const HistoryCard = ({ item, onSelect, onReuse, onDelete }) => {
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); onSelect(e); }} title="Visualizar">
                         <Eye className="w-4 h-4" />
                     </Button>
-                    {/* <<< ALTERAÇÃO: A prop 'onDelete' agora vem do 'HistoryPanel' e vai chamar o 'promptDelete' */}
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); onDelete(); }} title="Excluir">
                         <Trash2 className="w-4 h-4 text-red-500" />
                     </Button>
@@ -184,7 +182,7 @@ const HistoryPanel = ({ onReuseChat, allModels = [] }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [cardBounds, setCardBounds] = useState(null);
 
-    // <<< ADIÇÃO: Estados para o modal de CONFIRMAÇÃO
+    // Estados para o modal de CONFIRMAÇÃO
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
     const [itemToDelete, setItemToDelete] = useState(null);
 
@@ -207,7 +205,7 @@ const HistoryPanel = ({ onReuseChat, allModels = [] }) => {
     }, []);
 
     const handleViewDetails = async (item, event) => {
-        const cardElement = event.currentTarget.closest('.group'); // <<< Garantir que pega o Card
+        const cardElement = event.currentTarget.closest('.group'); // Garantir que pega o Card
         if (!cardElement) return;
         
         setCardBounds(cardElement.getBoundingClientRect());
@@ -239,16 +237,14 @@ const HistoryPanel = ({ onReuseChat, allModels = [] }) => {
             return () => clearTimeout(timer);
         }
     }, [isModalOpen]);
-    
-    // <<< REMOÇÃO: A função 'handleDeleteItem' antiga foi removida.
-    
-    // <<< ADIÇÃO: Nova função para ABRIR o modal de confirmação
+        
+    // Nova função para ABRIR o modal de confirmação
     const promptDelete = (item) => {
         setItemToDelete(item);
         setIsConfirmModalOpen(true);
     };
 
-    // <<< ADIÇÃO: Nova função para CONFIRMAR a exclusão (lógica movida para cá)
+    // Nova função para CONFIRMAR a exclusão (lógica movida para cá)
     const handleConfirmDelete = async () => {
         if (!itemToDelete) return;
 

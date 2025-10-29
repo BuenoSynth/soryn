@@ -22,6 +22,7 @@ class InferenceRequest:
     """Requisição de inferência para um modelo."""
     model_id: str
     prompt: str
+    messages: Optional[List[Dict[str, str]]] = None
     temperature: Optional[float] = None
     max_tokens: Optional[int] = None
     top_p: Optional[float] = None
@@ -52,7 +53,6 @@ class AIInference:
     async def infer_single(self, request: InferenceRequest, model_config: ModelConfig) -> InferenceResponse:
         start_time = asyncio.get_event_loop().time()
         try:
-            # O dispatcher agora tem mais opções
             if model_config.provider == "ollama":
                 response = await self._infer_ollama_api(request, model_config)
             elif model_config.provider == "openai":
@@ -75,22 +75,54 @@ class AIInference:
             )
 
     async def _infer_ollama_api(self, request: InferenceRequest, model_config: ModelConfig) -> InferenceResponse:
-        model_name = model_config.id
-        logger.info(f"Iniciando inferência via API do Ollama para o modelo: {model_name}")
-        url = "http://localhost:11434/api/generate"
-        payload = {"model": model_name, "prompt": request.prompt, "stream": False}
-        async with self.session.post(url, json=payload) as response:
-            if response.status == 200:
-                data = await response.json()
-                return InferenceResponse(
-                    model_id=request.model_id,
-                    response_text=data.get("response", "").strip(),
-                    tokens_used=data.get("eval_count", 0),
-                    inference_time_ms=0, success=True, metadata={"provider": "ollama_api"}
-                )
-            else:
-                error_text = await response.text()
-                raise Exception(f"Erro da API do Ollama: {error_text}")
+                model_name = model_config.id
+                logger.info(f"Iniciando inferência via API do Ollama para o modelo: {model_name}")
+
+                payload: Dict[str, Any]
+                if request.messages:
+                    # Se temos histórico, usamos o endpoint /api/chat
+                    url = "http://localhost:11434/api/chat"
+                    payload = {
+                        "model": model_name,
+                        "messages": request.messages,
+                        "stream": False
+                    }
+                else:
+                    # Se não temos, mantemos o endpoint /api/generate (comportamento antigo)
+                    url = "http://localhost:11434/api/generate"
+                    payload = {
+                        "model": model_name,
+                        "prompt": request.prompt,
+                        "stream": False
+                    }
+                
+                # <<< CORREÇÃO AQUI >>>
+                # O bloco abaixo estava com a indentação errada. 
+                # Ele deve ficar "dentro" da função _infer_ollama_api
+                # (no mesmo nível de indentação do 'payload: Dict...' acima)
+                async with self.session.post(url, json=payload) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        response_text = ""
+                        tokens_used = 0
+                        if request.messages:
+                            # /api/chat retorna a resposta dentro de 'message.content'
+                            response_text = data.get("message", {}).get("content", "").strip()
+                            tokens_used = data.get("eval_count", 0)
+                        else:
+                            # /api/generate retorna a resposta em 'response'
+                            response_text = data.get("response", "").strip()
+                            tokens_used = data.get("eval_count", 0)
+
+                        return InferenceResponse(
+                            model_id=request.model_id,
+                            response_text=response_text,
+                            tokens_used=tokens_used,
+                            inference_time_ms=0, success=True, metadata={"provider": "ollama_api"}
+                        )
+                    else:
+                        error_text = await response.text()
+                        raise Exception(f"Erro da API do Ollama: {error_text}")
 
     async def _infer_openai_sdk(self, request: InferenceRequest, model_config: ModelConfig) -> InferenceResponse:
         """Executa inferência usando a biblioteca oficial da OpenAI."""
@@ -102,9 +134,15 @@ class AIInference:
         
         client = openai.AsyncOpenAI(api_key=api_key)
 
+        messages_to_send: List[Dict[str, str]]
+        if request.messages:
+            messages_to_send = request.messages
+        else:
+            messages_to_send = [{"role": "user", "content": request.prompt}]
+
         completion = await client.chat.completions.create(
             model=model_config.api_model_name or model_config.id,
-            messages=[{"role": "user", "content": request.prompt}]
+            messages=messages_to_send  # <<< MODIFICADO
         )
         return InferenceResponse(
             model_id=request.model_id,
@@ -124,7 +162,20 @@ class AIInference:
         genai.configure(api_key=api_key)
 
         model = genai.GenerativeModel(model_config.api_model_name or model_config.id)
-        response = await model.generate_content_async(request.prompt)
+        
+        prompt_to_send: Any
+        if request.messages:
+            # O SDK do Gemini formata o histórico de forma diferente
+            gemini_history = []
+            for msg in request.messages:
+                # O SDK chama o "assistant" de "model"
+                role = "model" if msg["role"] == "assistant" else "user"
+                gemini_history.append({"role": role, "parts": [msg["content"]]})
+            prompt_to_send = gemini_history
+        else:
+            prompt_to_send = request.prompt
+        
+        response = await model.generate_content_async(prompt_to_send)
 
         return InferenceResponse(
             model_id=request.model_id,

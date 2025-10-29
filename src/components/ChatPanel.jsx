@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Card } from '@/components/ui/card';
 import { Send, Bot, User, Loader2, Sparkles, Copy, Check, ThumbsUp, ThumbsDown, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
@@ -36,9 +35,7 @@ const Message = ({ role, content, isLastAssistantMessage, onRegenerate }) => {
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
         </div>
         
-        {/* MUDANÇA: Contêiner para múltiplos botões de ação */}
         {!isUser && (
-          // <div className="absolute bottom--1 left-2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
           <div className="absolute top-full left-2 mt-1 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleCopy}>
               {hasCopied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
@@ -95,7 +92,6 @@ const ChatPanel = ({ allModels = [], initialHistory, onHistoryLoaded }) => {
         }
     }, [prompt]);
 
-    // ADIÇÃO: Lógica de fetch refatorada
     const fetchAssistantResponse = async (promptToSend) => {
         if (!promptToSend.trim() || !selectedModelId) return;
         
@@ -141,7 +137,7 @@ const ChatPanel = ({ allModels = [], initialHistory, onHistoryLoaded }) => {
         await fetchAssistantResponse(currentPrompt);
     };
 
-    // ADIÇÃO: Lógica para Regenerar
+    // Lógica para Regenerar
     const handleRegenerate = async () => {
         const lastUserMessage = messages.findLast(m => m.role === 'user');
         if (!lastUserMessage) return;
