@@ -72,4 +72,21 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  .prose p {
+    /* Melhora o espaçamento entre linhas (altura) dentro de um parágrafo */
+    line-height: 2.7; 
+  }
+
+  .prose ul,
+  .prose ol {
+     /* Adiciona um espaço abaixo de listas */
+    margin-bottom: 1.25em;
+  }
+
+  .prose li {
+    /* Adiciona um espaço entre os itens da lista */
+    margin-bottom: 0.5em; 
+  }
+
 }

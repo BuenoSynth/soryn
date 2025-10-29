@@ -26,6 +26,7 @@ import {
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { MarkdownCodeBlock } from './MarkdownCodeBlock';
 
 const DebatePanel = ({ selectedModels = [], allModels = [], onModelToggle, isLoadingModels }) => {
     const [prompt, setPrompt] = useState('');
@@ -313,8 +314,14 @@ const DebatePanel = ({ selectedModels = [], allModels = [], onModelToggle, isLoa
                                     </CardHeader>
                                     <CardContent>
                                         {response.success ? (
-                                            <div className="prose dark:prose-invert max-w-none text-sm leading-relaxed">
-                                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                            <div className="prose dark:prose-invert max-w-none text-md leading-relaxed">
+                                                <ReactMarkdown
+                                                    remarkPlugins={[remarkGfm]}
+                                                    components={{
+                                                        // 2. Sobrescreva o renderizador de 'code'
+                                                        code: MarkdownCodeBlock, 
+                                                    }}
+                                                >
                                                     {response.response_text}
                                                 </ReactMarkdown>
                                             </div>
